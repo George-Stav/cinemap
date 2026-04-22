@@ -11,10 +11,16 @@
 from bs4 import BeautifulSoup
 from pprint import pprint
 import pandas as pd
+import requests
 
-html_doc = open("data/all-cinemas-gr.html", "r")
-soup = BeautifulSoup(html_doc, "html.parser")
+OUTPUT_FILE = "data/all-cinemas-gr.html"
+response = requests.get("https://www.athinorama.gr/cinema/guide/all/cinemas")
+html = response.text
 
+with open(OUTPUT_FILE, "w") as f:
+    f.write(html)
+
+soup = BeautifulSoup(html, "html.parser")
 columns=["cinema", "room", "movie", "schedule"]
 data = {key: [] for key in columns}
 
@@ -29,10 +35,10 @@ for cinema_element in soup.find_all("div", class_="item card-item"):
         for movie_element in room_element.find_all("div", class_="item schedule-item"):
             movie = movie_element.h3.text.strip()
             schedule = "".join([span.text for span in movie_element.find_all("span", class_="time")])
-            data["cinema"] = cinema
-            data["room"] = room
-            data["movie"] = movie
-            data["schedule"] = schedule
+            data["cinema"].append(cinema)
+            data["room"].append(room)
+            data["movie"].append(movie)
+            data["schedule"].append(schedule)
 
 df = pd.DataFrame(data=data)
 df.to_csv("data/athinorama.csv", index=False, encoding="utf-8")
