@@ -13,13 +13,19 @@ from pprint import pprint
 import pandas as pd
 import requests
 
-OUTPUT_FILE = "data/all-cinemas-gr.html"
-response = requests.get("https://www.athinorama.gr/cinema/guide/all/cinemas")
+HTML_FILE = "../data/all-cinemas-gr.html"
+OUTPUT_FILE = "../data/athinorama.csv"
+response = requests.get("https://en.athinorama.gr/cinema/guide/all/cinemas")
+
+if response.status_code == 200:
+    print(f"200: HTML fetch successful")
+else:
+    print(f"{response.status_code}: HTML fetch failed, exiting...")
+    exit(1)
+
 html = response.text
-
-with open(OUTPUT_FILE, "w") as f:
+with open(HTML_FILE, "w") as f:
     f.write(html)
-
 soup = BeautifulSoup(html, "html.parser")
 columns=["cinema", "room", "movie", "schedule"]
 data = {key: [] for key in columns}
@@ -31,7 +37,7 @@ for cinema_element in soup.find_all("div", class_="item card-item"):
     # if <div class="schedule-grid-title"> exists then use that for the room name, else "default"
     for room_element in cinema_element.find_all("div", class_="grid schedule-grid"):
         room_title_element = room_element.find("div", class_="schedule-grid-title")
-        room = "default" if not room_title_element else room_title_element.span.text.strip()
+        room = "Room 1" if not room_title_element else room_title_element.span.text.strip()
         for movie_element in room_element.find_all("div", class_="item schedule-item"):
             movie = movie_element.h3.text.strip()
             schedule = "".join([span.text for span in movie_element.find_all("span", class_="time")])
@@ -41,4 +47,5 @@ for cinema_element in soup.find_all("div", class_="item card-item"):
             data["schedule"].append(schedule)
 
 df = pd.DataFrame(data=data)
-df.to_csv("data/athinorama.csv", index=False, encoding="utf-8")
+df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8")
+print(f"csv saved in: {OUTPUT_FILE}")
